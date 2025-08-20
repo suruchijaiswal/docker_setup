@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+DO $$
+BEGIN
+   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = :'USER_MGMT_DB') THEN
+      EXECUTE format('CREATE DATABASE %I', :'USER_MGMT_DB');
+   END IF;
+   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = :'RESOURCE_ALLOCATION_DB') THEN
+      EXECUTE format('CREATE DATABASE %I', :'RESOURCE_ALLOCATION_DB');
+   END IF;
+   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = :'MASTER_SERVICE_DB') THEN
+      EXECUTE format('CREATE DATABASE %I', :'MASTER_SERVICE_DB');
+   END IF;
+   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = :'PROJECT_SOW_DB') THEN
+      EXECUTE format('CREATE DATABASE %I', :'PROJECT_SOW_DB');
+   END IF;
+   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = :'API_GATEWAY_DB') THEN
+      EXECUTE format('CREATE DATABASE %I', :'API_GATEWAY_DB');
+   END IF;
+END
+$$;
+EOSQL

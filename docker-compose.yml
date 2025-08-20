@@ -1,0 +1,173 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+      USER_MGMT_DB: usr_mgmt_db
+      RESOURCE_ALLOCATION_DB: resource_allocation_db
+      MASTER_SERVICE_DB: master_service_db
+      PROJECT_SOW_DB: project_sow_db
+      API_GATEWAY_DB: user_mgmt
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/scripts/create-databases.sh:/docker-entrypoint-initdb.d/10-create-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  eureka:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/eureka-server
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/eureka-server/Dockerfile
+    container_name: eureka
+    environment:
+      SERVER_PORT: 8761
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    ports:
+      - "8761:8761"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  user-mgmt-service:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/user-mgmt-service
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/user-mgmt-service/Dockerfile
+    container_name: user-mgmt-service
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/usr_mgmt_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8081:8081"
+    depends_on:
+      eureka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  project-sow-service:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/project-sow-service
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/project-sow-service/Dockerfile
+    container_name: project-sow-service
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/project_sow_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  resource-allocation-service:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/resource-allocation-service
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/resource-allocation-service/Dockerfile
+    container_name: resource-allocation-service
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resource_allocation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8083:8083"
+    depends_on:
+      eureka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  reporting-integration-service:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/reporting-integration-service
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/reporting-integration-service/Dockerfile
+    container_name: reporting-integration-service
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/master_service_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8084:8084"
+    depends_on:
+      eureka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  master-resource-service:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/rma_java_microservices/master-resource-service
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/master-resource-service/Dockerfile
+    container_name: master-resource-service
+    environment:
+      SERVER_PORT: 8085
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/master_service_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      APP_JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  api-gateway-main:
+    build:
+      context: C:/Users/ved/Documents/updatedProject/gitproject/api-gateway-main
+      dockerfile: C:/Users/ved/Documents/updatedProject/gitproject/docker-setup/api-gateway-main/Dockerfile
+    container_name: api-gateway-main
+    environment:
+      API_GATEWAY_PORT: 8080
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      USER_MGMT_DB: usr_mgmt_db
+      API_GATEWAY_DB: user_mgmt
+      JWT_SECRET: qXjYpZmVcDbWnFkLgHsIrOtUeQxSzAaBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/ABCDEF
+      USER_MGMT_PORT: 8081
+      RESOURCE_ALLOCATION_PORT: 8083
+      PROJECT_SOW_PORT: 8082
+      REPORTING_INTEGRATION_PORT: 8084
+      MASTER_RESOURCE_PORT: 8085
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "8080:8080"
+    depends_on:
+      user-mgmt-service:
+        condition: service_started
+      resource-allocation-service:
+        condition: service_started
+      project-sow-service:
+        condition: service_started
+      reporting-integration-service:
+        condition: service_started
+      master-resource-service:
+        condition: service_started
+
+volumes:
+  pgdata:
